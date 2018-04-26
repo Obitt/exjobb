@@ -1,7 +1,7 @@
 import smbus
 import serial
-
-
+import os
+import time
 
 BasicFont = [[0 for x in range(8)] for x in range(10)]
 BasicFont = [[0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
@@ -155,53 +155,65 @@ def settextpos(row,col):
 
 init(0x3c)
 clearDisplay()
-#settextpos(0, 0)
-#putstring("Hejhdfh") #placeras i nedre vändra hörn
-#settextpos(1, 1)
-#putstring("To")
-#settextpos(2, 2)
-#putstring("Test")
-#settextpos(3, 3)
-#putstring("The")
-#settextpos(4, 4)
-#putstring("Display")
-settextpos(6, 0)
+
+settextpos(0, 0)
 putstring(str("Solar Voltage"))
-settextpos(7, 0)
+settextpos(1, 0)
 putstring(str("-------------"))
-settextpos(8, 9)
+settextpos(2, 9)
 putstring(str("V"))
 
+settextpos(5, -1)
+putstring(str("Battery Voltage"))
+settextpos(6, -1)
+putstring(str("---------------"))
+settextpos(7, 9)
+putstring(str("V"))
 
-import os
-import time
-
-from time import sleep #to create delays
+#from time import sleep #to create delays
 from datetime import datetime
 
 ser = serial.Serial('/dev/ttyACM0',9600)
 
-while True: 
+while True:
+
     str1 = ser.readline()  # read a string from the serial port
+    time.sleep(0.1)
+    str2 = ser.readline()
+    
     s = float(str1)    # convert a string to a floating point number
-    volt = 5.1 * 11.5 * s / 1023 #scales the analog input voltage 
+    s2 = float(str2)
     
-    rounded_real_volt = ("%.3f" % round (volt,3)) #rounds the voltage
-    #print (rounded_real_volt) # prints the  current voltage in the terminal
+    solar_voltage = 5.1 * 11.5 * s / 1023 #scales the analog input voltage
+    bat_voltage = 5.1 * s2 / 1023
+        
+    rounded_real_solar_voltage = ("%.3f" % round (solar_voltage,3)) #rounds the voltage
+    rounded_real_bat_voltage = ("%.3f" % round (bat_voltage,3))
     
-    settextpos(8, 3)
-    putstring((rounded_real_volt))
+    print ("Measured voltage over solar cell:", rounded_real_solar_voltage, "V") # prints the  current voltage in the terminal
+    print ("Measured voltage over battery:", rounded_real_bat_voltage , "V")
+     
+    settextpos(2, 3)
+    putstring((rounded_real_solar_voltage))
+    settextpos(7, 3)
+    putstring((rounded_real_bat_voltage))
 
-    file = open("/media/pi/KINGSTON/data_log.csv", "a")
-    i=0
-    if os.stat("/media/pi/KINGSTON/data_log.csv").st_size == 0:
-        file.write('Time, Voltage\n')
+    if os.path.isdir('/media/pi/KINGSTON'):        
+        file = open("/media/pi/KINGSTON/data_log.csv", "a")
+        i=0
+        if os.stat("/media/pi/KINGSTON/data_log.csv").st_size == 0:
+            file.write('Time, Solar voltage, Battery voltage\n')
 
-    i=i+1
-    now = datetime.now()
-    file.write(str(now)+","+str(rounded_real_volt)+"\n")
-    file.flush()
-    time.sleep(1) #wait for some seconds
+        i=i+1
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #removes unnecessary decimals
+        file.write(str(now)+","+str(rounded_real_solar_voltage)+","+str(rounded_real_bat_voltage)+"\n")
+        file.flush()
+        print ("Data successfully sent to USB \n")
+        time.sleep(5) #wait for some seconds
+        
+    else:
+        print ("No USB connected \n")
+        time.sleep(1)
 file.close()
 
 
