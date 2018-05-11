@@ -14,6 +14,7 @@ void setup() {
 //pinMode(13, OUTPUT);
 // initialize i2c as slave
 Wire.begin(SLAVE_ADDRESS);
+pinMode(10, OUTPUT);
 
 // define callbacks for i2c communication
 Wire.onReceive(receiveData);
@@ -22,6 +23,15 @@ Wire.onRequest(sendData);
 void loop() {
   sensorValue = analogRead(sensorPin) * 11;
   sensorValue2 = analogRead(sensorPin2);
+  
+  if (sensorValue2 < 695){ // if battery voltage drops below 3.4V
+    //delay(10);
+    digitalWrite(10, LOW);
+   
+  }
+  else{
+    digitalWrite(10, LOW);
+  } 
 
   noInterrupts();
   locked_sens = sensorValue;
