@@ -2,6 +2,7 @@ import smbus
 import serial
 import os
 import time
+import subprocess
 
 BasicFont = [[0 for x in range(8)] for x in range(10)]
 BasicFont = [[0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
@@ -153,6 +154,40 @@ def settextpos(row,col):
     send(0x3c,cmd_mod,[column])
     send(0x3c,cmd_mod,[int(0x11 + col/2)])
 
+def send_data(rounded_real_solar_voltage, rounded_real_bat_voltage):
+    if os.path.isdir('/media/pi/KINGSTON'):        
+        file = open("/media/pi/KINGSTON/data_log.csv", "a")
+        i=0
+        if os.stat("/media/pi/KINGSTON/data_log.csv").st_size == 0:
+            file.write('Time, Solar voltage, Battery voltage\n')
+
+        i=i+1
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #removes unnecessary decimals
+        file.write(str(now)+","+str(rounded_real_solar_voltage)+","+str(rounded_real_bat_voltage)+"\n")
+        file.flush()
+        print ("Data successfully sent to USB \n")
+        file.close()
+        time.sleep(5) #wait for some seconds
+    else:
+        print ("No USB connected \n")
+        time.sleep(1)
+        
+def display_data(rounded_real_solar_voltage, rounded_real_bat_voltage):
+    
+    print ("Measured voltage over solar cell:", rounded_real_solar_voltage, "V") # prints the  current voltage in the terminal
+    print ("Measured voltage over battery:", rounded_real_bat_voltage , "V")
+    print ("battery bits:", s2)
+    
+    settextpos(2, 3)
+    putstring((rounded_real_solar_voltage))
+    settextpos(7, 3)
+    putstring((rounded_real_bat_voltage))
+
+def low_voltage(s2, rounded_real_solar_voltage, rounded_real_bat_voltage):
+    if s2 < 400:
+        send_data(rounded_real_solar_voltage, rounded_real_bat_voltage)
+        subprocess.call(['sudo','shutdown','-t','0'])
+
 init(0x3c)
 clearDisplay()
 
@@ -184,36 +219,18 @@ while True:
     s = float(str1)    # convert a string to a floating point number
     s2 = float(str2)
     
-    solar_voltage = 5.1 * 11.5 * s / 1023 #scales the analog input voltage
+    solar_voltage = 5 * 11.5 * s / 1023 #scales the analog input voltage
     bat_voltage = 5.1 * s2 / 1023
-        
+    #bat_bits = s2 #number of bits from LBO
     rounded_real_solar_voltage = ("%.3f" % round (solar_voltage,3)) #rounds the voltage
     rounded_real_bat_voltage = ("%.3f" % round (bat_voltage,3))
     
-    print ("Measured voltage over solar cell:", rounded_real_solar_voltage, "V") # prints the  current voltage in the terminal
-    print ("Measured voltage over battery:", rounded_real_bat_voltage , "V")
-     
-    settextpos(2, 3)
-    putstring((rounded_real_solar_voltage))
-    settextpos(7, 3)
-    putstring((rounded_real_bat_voltage))
-
-    if os.path.isdir('/media/pi/KINGSTON'):        
-        file = open("/media/pi/KINGSTON/data_log.csv", "a")
-        i=0
-        if os.stat("/media/pi/KINGSTON/data_log.csv").st_size == 0:
-            file.write('Time, Solar voltage, Battery voltage\n')
-
-        i=i+1
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #removes unnecessary decimals
-        file.write(str(now)+","+str(rounded_real_solar_voltage)+","+str(rounded_real_bat_voltage)+"\n")
-        file.flush()
-        print ("Data successfully sent to USB \n")
-        time.sleep(5) #wait for some seconds
+    
+    
+    low_voltage(s2, rounded_real_solar_voltage, rounded_real_bat_voltage)
+    display_data(rounded_real_solar_voltage, rounded_real_bat_voltage)
+    send_data(rounded_real_solar_voltage, rounded_real_bat_voltage)
         
-    else:
-        print ("No USB connected \n")
-        time.sleep(1)
 file.close()
 
 
