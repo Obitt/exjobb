@@ -19,24 +19,28 @@ pinMode(10, OUTPUT);
 // define callbacks for i2c communication
 Wire.onReceive(receiveData);
 Wire.onRequest(sendData);
+digitalWrite(10,HIGH);
 }
 void loop() {
   sensorValue = analogRead(sensorPin) * 11;
   sensorValue2 = analogRead(sensorPin2);
   
-  if (sensorValue2 < 695){ // if battery voltage drops below 3.4V
-    //delay(10);
-    digitalWrite(10, LOW);
-   
-  }
-  else{
-    digitalWrite(10, LOW);
-  } 
-
   noInterrupts();
   locked_sens = sensorValue;
   locked_sens2 = sensorValue2;
   interrupts();
+  
+  if (sensorValue2 < 640){ // if battery voltage drops below 3.65V, 640
+    delay(10000); //10 sekunder innan rasp stängs av
+    digitalWrite(10, LOW);
+  }
+  else if (sensorValue2 > 765){ // keep Raspberry off until bateryvoltage is over 3.75V ,760
+    digitalWrite(10, HIGH);
+  } 
+  
+
+ 
+  delay(500);
 }
 // callback for received data
 void receiveData(int byteCount){
