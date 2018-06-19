@@ -40,7 +40,7 @@ void loop() {
   locked_time = time;
   interrupts();
   
-  if (sensorValue2 < 640){ // if battery voltage drops below 3.65V, 640
+  if (sensorValue2 < 690){ // if battery voltage drops below 3.65V, 640
     time = 0;
     delay(10000); //10 sekunder innan rasp stängs av
     digitalWrite(10, LOW);
